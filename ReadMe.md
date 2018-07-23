@@ -1,5 +1,8 @@
 # Stereo Imaging
-<pre>
+
+<br/>
+<br/>
+<br/>
 
 
 In order to accurately and reliably determine a location on a windshield for localized dimming, it is necessary to locate the
@@ -8,8 +11,9 @@ imaging seems to be the best way to locate these points. This repository houses 
 implementing stereo imaging for standard applications. It is to serve as an introduction to the mathematics and tools used to
 acquire corresponding features found in a pair of images and to project 3D coordinates onto a 2D image plane.
 
-
-</pre>
+<br/>
+<br/>
+<br/>
 
 ![Stereo Imaging Diagram](https://github.com/gibsonbailey/Stereo-Imaging/blob/master/ReadMe_Media/Stereo.jpg?raw=true)
 
