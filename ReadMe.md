@@ -5,4 +5,5 @@ positions of high-intensity light sources external to a vehicle. Stereo imaging 
 demonstrates a process of implementing stereo imaging for standard applications. It is to serve as an introduction to the mathematics and tools used to acquire
 corresponding features found in a pair of images and to project 3D coordinates onto a 2D image plane.
 
-merge conflict test
+## Dependencies
+* OpenCV
