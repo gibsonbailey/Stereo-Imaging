@@ -32,10 +32,8 @@ const cv::Size chessBoardSize(6, 9);
 const float calibrationSquareDimension = 0.01905f; // meters
 
 
-void displayImage(const cv::Mat& img, const float scale_factor = 0.1);
 void getChessboardCorners(std::vector<cv::Mat> images, std::vector<std::vector<cv::Point2f> >& allFoundCorners, bool showResults = false);
 void createBoardPoints(const cv::Size boardSize, const float squareEdgeLength, std::vector<cv::Point3f>& corners);
-void showChessboardCornersLive();
 void calibrate(const std::vector<cv::Mat>& images, cv::Mat& cameraMatrix, cv::Mat& distortionCoefficients, cv::Mat& rotationVecs, cv::Mat& translationVecs);
 void saveCalibration(const std::string& filename, const cv::Mat& cameraMatrix, const cv::Mat& distortionCoefficients);
 void loadImages(const std::string path, std::vector<cv::Mat>& images); void showUndistortedVideo(const cv::Mat cameraMat, const cv::Mat distMat); 
@@ -44,24 +42,23 @@ void loadImages(const std::string path, std::vector<cv::Mat>& images); void show
 int main(int argc, char** argv)
 {
 	cv::Mat cameraMatrix = cv::Mat::eye(3,3, CV_64F);
-
 	cv::Mat distortionCoefficients, rotVecs, transVecs;
-
 	std::vector<cv::Mat> savedImages;
-
 	std::vector<std::vector<cv::Point2f> > markerCorners, rejectedCandidates;
 	
-	cv::Mat chess_img = cv::imread("chess_perfect.png");
-
 	std::string ImagePath = "./images/calibration_images/*.jpg"; // .jpg only
+	std::string cameraName = "MacbookPro2015";
 
+	// load calibration image set into memory
 	loadImages(ImagePath, savedImages);
 
+	// solve for camera matrix and distortion coefficients using calibration image set
 	calibrate(savedImages, cameraMatrix, distortionCoefficients, rotVecs, transVecs);
 
-	std::string cameraName = "MacbookPro2015";
+	// save camera matrix and distortion coefficients to disc
 	saveCalibration("./calibration_results/" + cameraName, cameraMatrix, distortionCoefficients);
 
+	// demonstrate calibration using live video through webcam
 	showUndistortedVideo(cameraMatrix, distortionCoefficients);
 
 	return 0;
@@ -83,10 +80,10 @@ void showUndistortedVideo(const cv::Mat cameraMat, const cv::Mat distMat)
 	const int FPS = 20;
 
 	cv::namedWindow("Camera-View", CV_WINDOW_AUTOSIZE);
-//	cv::namedWindow("Calibrated", CV_WINDOW_AUTOSIZE);
 
 	bool undistorted = true;
 	std::cout << "Press 'u' to toggle post-calibration/prior-calibration." << std::endl;
+	std::cout << "Press 'q' to quit." << std::endl;
 	
 
 	while(true)
@@ -115,8 +112,6 @@ void showUndistortedVideo(const cv::Mat cameraMat, const cv::Mat distMat)
 			cv::putText(frame, "Pre-Calibration", cv::Point(25,25), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(255,255,255), 1, CV_AA);
 			cv::imshow("Camera-View", frame);
 		}
-//		cv::imshow("Original", frame);
-//		cv::imshow("Calibrated", undistortedFrame);
 
 		char c = cv::waitKey(1000.0 / FPS);	
 		if(c == 'u'){
@@ -137,101 +132,16 @@ void showUndistortedVideo(const cv::Mat cameraMat, const cv::Mat distMat)
 }
 
 
-void showChessboardCornersLive()
-{
-	cv::Mat frame;
-	cv::Mat drawToFrame;
-
-	cv::Mat cameraMat = cv::Mat::eye(3,3, CV_64F);
-
-	cv::Mat distCoef, rotVecs, transVecs;
-
-	std::vector<cv::Mat> savedImages;
-
-	std::vector<std::vector<cv::Point2f> > markerCorners, rejectedCandidates;
-	
-	cv::Mat im = cv::imread("chess_perfect.png");
-//	savedImages.push_back(im);
-//	std::cout << "Check 1" << std::endl;
-
-	const bool live_video = true;
-
-	cv::VideoCapture vid(0);
-
-	if(!vid.isOpened())
-	{
-		return;
-	}
-//	std::cout << "Check 4" << std::endl;
-
-	const int FPS = 20;
-
-	cv::namedWindow("Forward-Facing Webcam", CV_WINDOW_AUTOSIZE);
-//	std::cout << "Check 5" << std::endl;
-
-	while(true)
-	{
-//		std::cout << "Check 6" << std::endl;
-	
-		if(!vid.read(frame))
-		{
-			break;
-		}
-
-		std::vector<cv::Vec2f> foundPoints;
-		bool found = false;
-		
-		cv::Size sz(int(frame.cols / 1.5),int(frame.rows / 1.5));
-		cv::resize(frame, frame, sz);
-		
-		found = cv::findChessboardCorners(frame, chessBoardSize, foundPoints, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_NORMALIZE_IMAGE);
-		frame.copyTo(drawToFrame);
-
-		cv::drawChessboardCorners(drawToFrame, chessBoardSize, foundPoints, found);
-		std::cout << "found: " << found << std::endl;
-	
-		if(found)
-		{
-			cv::imshow("Webcam", drawToFrame);
-		}
-		else {
-			cv::imshow("Webcam", frame);
-		}
-	
-		
-		char c = cv::waitKey(1000 / FPS);
-		if(c == 'q' || c == 27) // 'q' character or escape key
-		{
-			// exit calibration process
-			break;
-		}
-		else if (c == 32) // Space Bar
-		{
-			// add to saved images
-			savedImages.push_back(frame);
-		}
-		else if (c == 13) // Carriage Return
-		{
-			// perform calibration
-			calibrate(savedImages, cameraMat, distCoef, rotVecs, transVecs);
-			saveCalibration("./Calibration_Data/cameraMatrix_and_distortionCoefficients", cameraMat, distCoef);
-		}
-
-		std::cout << "Size of image bank: " << savedImages.size() << std::endl;
-	} // while true loop	
-}
-
-
 void calibrate(const std::vector<cv::Mat>& images, cv::Mat& cameraMatrix, cv::Mat& distortionCoefficients, cv::Mat& rotationVecs, cv::Mat& translationVecs)
 {
 	std::vector<std::vector<cv::Point2f> > objectImageSpaceCoords;
 	getChessboardCorners(images, objectImageSpaceCoords, false);
-	std::cout << "images Coords Size: " << objectImageSpaceCoords.size() << std::endl;
+	// std::cout << "images Coords Size: " << objectImageSpaceCoords.size() << std::endl;
 	
 	std::vector<std::vector<cv::Point3f> > objectWorldSpaceCoords(1);
 	createBoardPoints(chessBoardSize, calibrationSquareDimension, objectWorldSpaceCoords[0]);
 	objectWorldSpaceCoords.resize(objectImageSpaceCoords.size(), objectWorldSpaceCoords[0]);
-	std::cout << "world Coords Size: " << objectWorldSpaceCoords.size() << std::endl;
+	// std::cout << "world Coords Size: " << objectWorldSpaceCoords.size() << std::endl;
 
 	cv::calibrateCamera(objectWorldSpaceCoords, objectImageSpaceCoords, chessBoardSize, cameraMatrix, distortionCoefficients, rotationVecs, translationVecs);	
 }
@@ -240,7 +150,7 @@ void calibrate(const std::vector<cv::Mat>& images, cv::Mat& cameraMatrix, cv::Ma
 void saveCalibration(const std::string& filename, const cv::Mat& cameraMatrix, const cv::Mat& distortionCoefficients)
 {
 	std::ofstream fOut(filename);
-if(fOut)
+	if(fOut)
 	{		
 
 		// Camera Matrix
@@ -299,19 +209,6 @@ void getChessboardCorners(std::vector<cv::Mat> images, std::vector<std::vector<c
 			cv::waitKey();
 		}
 	}
-}
-
-
-void displayImage(const cv::Mat& img, const float scale_factor)
-{
-	cv::namedWindow("Test Image", CV_WINDOW_AUTOSIZE); 
-	
-	cv::Size s(int(img.cols *	scale_factor),int(img.rows * scale_factor));
-
-	cv::Mat dst;
-	cv::resize(img, dst, s); 	
-	cv::imshow("Test Image", dst);
-	cv::waitKey(); 
 }
 
 
